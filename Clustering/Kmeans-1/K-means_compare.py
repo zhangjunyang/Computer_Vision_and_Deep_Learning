@@ -55,32 +55,32 @@ plt.subplots_adjust(left=0.05,right=0.95,bottom=0.05,top=0.9)
 cm = mpl.colors.ListedColormap(['#FFC2CC', '#C2FFCC', '#CCC2FF'])
 cm2 = mpl.colors.ListedColormap(['#FF0000', '#00FF00', '#0000FF'])
  
-#子图1——原始数据
-plt.subplot(221)
+#子图1： 原始数据分布图
+plt.subplot(331)
 plt.scatter(X[:,0],X[:,1],c=Y,s=6,cmap=cm,edgecolors="none")
-plt.title(u"原始数据分布图")
+plt.title(u"origins")
 plt.xticks(())
 plt.yticks(())
 plt.grid(True)
  
-#子图2：K-Means算法聚类结果图
-plt.subplot(222)
+#子图2: K-Means算法聚类结果图
+plt.subplot(332)
 plt.scatter(X[:,0], X[:,1], c=km_y_hat, s=6, cmap=cm,edgecolors='none')
 plt.scatter(k_means_cluster_center[:,0], k_means_cluster_center[:,1],c=range(clusters),s=60,cmap=cm2,edgecolors='none')
-plt.title(u'K-Means算法聚类结果图')
+plt.title(u'K-Means result')
 plt.xticks(())
 plt.yticks(())
 plt.text(-3.8, 3,  'train time: %.2fms' % (km_batch*1000))
 plt.grid(True)
  
-#子图三Mini Batch K-Means算法聚类结果图
-plt.subplot(223)
+#子图3: Mini Batch K-Means算法聚类结果图
+plt.subplot(333)
 plt.scatter(X[:,0], X[:,1], c=mbk_y_hat, s=6, cmap=cm,edgecolors='none')
 plt.scatter(mbk_cluster_center[:,0], mbk_cluster_center[:,1],c=range(clusters),s=60,cmap=cm2,edgecolors='none')
-plt.title(u'Mini Batch K-Means算法聚类结果图')
+plt.title(u'Mini Batch K-Means restult')
 plt.xticks(())
 plt.yticks(())
 plt.text(-3.8, 3,  'train time: %.2fms' % (mbk_batch*1000))
 plt.grid(True)
-plt.savefig("kmean与mini batch kmeans 算法的比较.png")
+plt.savefig("kmean VS mini batch kmeans.png")
 plt.show()

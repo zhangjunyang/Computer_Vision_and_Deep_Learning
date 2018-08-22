@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
-# 描述：进行手写数字的识别的实例分析
+# 描述：进行手写数字识别的实例分析
 import tensorflow as tf
 
 from tensorflow.examples.tutorials.mnist import input_data

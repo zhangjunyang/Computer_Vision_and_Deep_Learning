@@ -1,9 +1,7 @@
 #coding:utf-8
 
 '''
-create on Aug,2015
 K-means算法的实现
-@author:ben
 '''
 
 from numpy import *
@@ -49,7 +47,7 @@ def kMeans(dataSet,k,dist = distElud,createCent = randCent):
             if clusterAssment[i,0] != minIndex:#判断是否收敛
                 clusterChanged = True
             clusterAssment[i,:] = minIndex,minDist ** 2
-        print center
+        print (center)
         for cent in range(k):#更新聚类中心
             dataCent = dataSet[nonzero(clusterAssment[:,0].A == cent)[0]]
             center[cent,:] = mean(dataCent,axis = 0)#axis是普通的将每一列相加，而axis=1表示的是将向量的每一行进行相加
@@ -59,4 +57,4 @@ def kMeans(dataSet,k,dist = distElud,createCent = randCent):
 dataSet = mat(loadData("testSet.txt"))
 k = 4
 a = kMeans(dataSet,k)
-print a
+print (a)
