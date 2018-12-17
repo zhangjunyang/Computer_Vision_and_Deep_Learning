@@ -14,7 +14,7 @@ pre_test_y = my_model.predict(test_x)
 print(pre_test_y)
  
 my_submission = pd.DataFrame({'Id':test.Id, 'SalePrice':pre_test_y}) #建csv
-my_submission.to_csv('submission2.csv', index=False)
+my_submission.to_csv('submission.csv', index=False)
 
 
 
