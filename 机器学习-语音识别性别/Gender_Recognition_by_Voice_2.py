@@ -10,7 +10,7 @@ import seaborn as sns
 
 import matplotlib.pyplot as plt
 
-%matplotlib inline
+# %matplotlib inline
 
 df = pd.read_csv('voice.csv')
 df.head()
@@ -111,7 +111,7 @@ for c in C_range:
 print(acc_score) 
 
 import matplotlib.pyplot as plt
-%matplotlib inline
+# %matplotlib inline
 
 C_values=list(np.arange(0.1,6,0.1))
 # plot the value of C for SVM (x-axis) versus the cross-validated accuracy (y-axis)
@@ -130,7 +130,7 @@ for g in gamma_range:
 print(acc_score)
 
 import matplotlib.pyplot as plt
-%matplotlib inline
+# %matplotlib inline
 
 gamma_range=[0.0001,0.001,0.01,0.1,1,10,100]
 # plot the value of C for SVM (x-axis) versus the cross-validated accuracy (y-axis)
@@ -149,7 +149,7 @@ for g in gamma_range:
 print(acc_score)  
 
 import matplotlib.pyplot as plt
-%matplotlib inline
+# %matplotlib inline
 
 gamma_range=[0.0001,0.001,0.01,0.1]
 # plot the value of C for SVM (x-axis) versus the cross-validated accuracy (y-axis)
@@ -167,7 +167,7 @@ for g in gamma_range:
 print(acc_score)
 
 import matplotlib.pyplot as plt
-%matplotlib inline
+# %matplotlib inline
 
 gamma_range=[0.01,0.02,0.03,0.04,0.05]
 
@@ -186,7 +186,7 @@ for d in degree:
 print(acc_score)
 
 import matplotlib.pyplot as plt
-%matplotlib inline
+# %matplotlib inline
 
 degree=[2,3,4,5,6]
 # plot the value of C for SVM (x-axis) versus the cross-validated accuracy (y-axis)
