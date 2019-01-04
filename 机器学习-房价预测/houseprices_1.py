@@ -4,6 +4,7 @@ from sklearn.ensemble import RandomForestRegressor
 train = pd.read_csv( 'train.csv') #读取train数据
 train_y = train.SalePrice
 predictor_x = ['LotArea','YearBuilt','OverallQual','1stFlrSF','FullBath'] #选取五个特征
+# predictor_x = ['LotArea', 'OverallQual', 'YearBuilt', 'TotRmsAbvGrd']
 train_x = train[predictor_x]
 
 model = RandomForestRegressor() #随机森林模型
