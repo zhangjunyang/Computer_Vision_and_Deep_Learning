@@ -72,21 +72,21 @@ print(metrics.accuracy_score(y_test,y_pred))
 
 # Performing K-fold cross validation with different kernels
 # CV on Linear kernel
-from sklearn.cross_validation import cross_val_score
+from sklearn.model_selection import cross_val_score
 svc=SVC(kernel='linear')
 scores = cross_val_score(svc, X, y, cv=10, scoring='accuracy') #cv is cross validation
 print(scores)
 print(scores.mean())
 
 # CV on rbf kernel
-from sklearn.cross_validation import cross_val_score
+from sklearn.model_selection import cross_val_score
 svc=SVC(kernel='rbf')
 scores = cross_val_score(svc, X, y, cv=10, scoring='accuracy') #cv is cross validation
 print(scores)
 print(scores.mean())
 
 # CV on Polynomial kernel
-from sklearn.cross_validation import cross_val_score
+from sklearn.model_selection import cross_val_score
 svc=SVC(kernel='poly')
 scores = cross_val_score(svc, X, y, cv=10, scoring='accuracy') #cv is cross validation
 print(scores)
@@ -210,7 +210,7 @@ accuracy_score= metrics.accuracy_score(y_test,y_predict)
 print(accuracy_score)
 
 # K-fold cross validation(where K=10)
-from sklearn.cross_validation import cross_val_score
+from sklearn.model_selection import cross_val_score
 svc=SVC(kernel='linear',C=0.1)
 scores = cross_val_score(svc, X, y, cv=10, scoring='accuracy')
 print(scores)
@@ -264,15 +264,4 @@ print(model_svm.best_params_)
 
 y_pred= model_svm.predict(X_test)
 print(metrics.accuracy_score(y_pred,y_test))
-
-
-
-
-
-
-
-
-
-
-
 

@@ -1,220 +1,223 @@
-import sys
 import numpy as np
 import pandas as pd
-import scipy as sp
-import sklearn
-import random
-import time
-import warnings
-warnings.filterwarnings('ignore')
-from subprocess import check_output
-from sklearn import svm, tree, linear_model, neighbors, naive_bayes, ensemble, discriminant_analysis, gaussian_process
-from xgboost import XGBClassifier
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-from sklearn import feature_selection
-from sklearn import model_selection
-from sklearn import metrics
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.pylab as pylab
-import seaborn as sns
-from pandas.tools.plotting import scatter_matrix
+import warnings
+warnings.filterwarnings('ignore') 
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus']=False
 
-mpl.style.use('ggplot')
-sns.set_style('white')
-pylab.rcParams['figure.figsize'] = 12,8
+data_train = pd.read_csv('train.csv')
 
-data_raw = pd.read_csv('train.csv')
-data_val  = pd.read_csv('test.csv')
-data1 = data_raw.copy(deep = True)
-data_cleaner = [data1, data_val]
+# 乘客各属性分布
+fig = plt.figure(figsize=(14,8))
+fig.set(alpha=0.2)
+
+plt.subplot2grid((2,3),(0,0))
+data_train.Survived.value_counts().plot(kind='bar')
+plt.title(u'获救情况（1为获救）')
+plt.ylabel(u'人数')
+
+plt.subplot2grid((2,3),(0,1))
+data_train.Pclass.value_counts().plot(kind='bar')
+plt.title(u'乘客等级分布')
+plt.ylabel(u'人数')
+
+plt.subplot2grid((2,3),(0,2))
+plt.scatter(data_train.Survived,data_train.Age)
+plt.ylabel(u"年龄")
+plt.grid(b=True, which='major', axis='y')
+plt.title(u"按年龄看获救分布 (1为获救)")
+
+plt.subplot2grid((2,3),(1,0),colspan=2)
+data_train.Age[data_train.Pclass ==1].plot(kind='kde')
+data_train.Age[data_train.Pclass ==2].plot(kind='kde')
+data_train.Age[data_train.Pclass == 3].plot(kind='kde')
+plt.xlabel(u"年龄")
+plt.ylabel(u"密度")
+plt.title(u"各等级的乘客年龄分布")
+plt.legend((u'头等舱',u'2等舱',u'3等舱'),loc=0)
+
+plt.subplot2grid((2,3),(1,2))
+data_train.Embarked.value_counts().plot(kind='bar')
+plt.title(u"各登船口岸上船人数")
+plt.ylabel(u"人数")
+
+#plt.show()
+
+#各乘客等级的获救情况
+Survived_0 = data_train.Pclass[data_train.Survived==0].value_counts()
+Survived_1 = data_train.Pclass[data_train.Survived==1].value_counts()
+df = pd.DataFrame({u'获救':Survived_1, u'未获救':Survived_0})
+#print(df)
+df.plot(kind='bar',stacked = True)
+plt.title(u"各乘客等级的获救情况")
+plt.xlabel(u"乘客等级")
+plt.ylabel(u"人数")
+#plt.show()
+
+# #各性别的获救情况
+# Survived_n = data_train.Sex[data_train.Survived == 0].value_counts()
+# Survived_y = data_train.Sex[data_train.Survived == 1].value_counts()
+# df1 = pd.DataFrame({u'获救':Survived_y, u'未获救':Survived_n})
+# print(df1)
+# df1.plot(kind='bar',stacked = True)
+# plt.title(u"各乘客性别的获救情况")
+# plt.xlabel(u"乘客性别")
+# plt.ylabel(u"人数")
+# plt.show()
+
+Survived_m = data_train.Survived[data_train.Sex == 'male'].value_counts()
+Survived_f = data_train.Survived[data_train.Sex == 'female'].value_counts()
+df1 = pd.DataFrame({u'男性':Survived_m, u'女性':Survived_f})
+df1.plot(kind='bar', stacked=True)
+plt.title(u"按性别看获救情况")
+plt.xlabel(u"获救情况（1为获救）")
+plt.ylabel(u"人数")
+#plt.show()
+
+#各种舱级别情况下各性别的获救情况
+fig=plt.figure(figsize=(10,5))
+fig.set(alpha=0.65)
+plt.xticks([])
+plt.yticks([])
+plt.title(u"根据舱等级和性别的获救情况")
+ax1 = fig.add_subplot(141)
+data_train.Survived[data_train.Sex=='female'][data_train.Pclass !=3].value_counts().plot(kind='bar',label='female highclass',color='#FA2479')
+ax1.set_xticklabels([u"获救", u"未获救"],rotation=0)
+ax1.legend([u"女性/高级舱"],loc=0)
 
 
-print (data_raw.info())
-data_raw.describe(include = 'all')
+ax2 = fig.add_subplot(142,sharey=ax1)
+data_train.Survived[data_train.Sex=='female'][data_train.Pclass==3].value_counts().plot(kind='bar',label='female lowclass',color='pink')
+ax2.set_xticklabels([u"未获救", u"获救"], rotation=0)
+ax2.legend([u"女性/低级舱"], loc=0)
 
-for dataset in data_cleaner:    
-    dataset['Age'].fillna(dataset['Age'].median(), inplace = True)
-    dataset['Embarked'].fillna(dataset['Embarked'].mode()[0], inplace = True)
-    dataset['Fare'].fillna(dataset['Fare'].median(), inplace = True)
-    
-drop_column = ['PassengerId','Cabin', 'Ticket']
-data1.drop(drop_column, axis=1, inplace = True)
-
-print(data1.isnull().sum())
-print(data_val.isnull().sum())
-
-for dataset in data_cleaner:    
-    dataset['FamilySize'] = dataset ['SibSp'] + dataset['Parch'] + 1
-    dataset['IsAlone'] = 1 
-    dataset['IsAlone'].loc[dataset['FamilySize'] > 1] = 0 #
-    dataset['Title'] = dataset['Name'].str.split(", ", expand=True)[1].str.split(".", expand=True)[0]
-    dataset['FareBin'] = pd.qcut(dataset['Fare'], 4)
-    dataset['AgeBin'] = pd.cut(dataset['Age'].astype(int), 5)
+ax3=fig.add_subplot(143, sharey=ax1)
+data_train.Survived[data_train.Sex == 'male'][data_train.Pclass != 3].value_counts().plot(kind='bar', label='male highclass',color='lightblue')
+ax3.set_xticklabels([u"未获救", u"获救"], rotation=0)
+ax3.legend([u"男性/高级舱"], loc='best')
 
 
-stat_min = 10 
-title_names = (data1['Title'].value_counts() < stat_min) 
-data1['Title'] = data1['Title'].apply(lambda x: 'Misc' if title_names.loc[x] == True else x)
+ax4=fig.add_subplot(144, sharey=ax1)
+data_train.Survived[data_train.Sex == 'male'][data_train.Pclass == 3].value_counts().plot(kind='bar', label='male lowclass', color='steelblue')
+ax4.set_xticklabels([u"未获救", u"获救"], rotation=0)
+ax4.legend([u"男性/低级舱"], loc='best')
+#plt.show()
+
+Survived_0 = data_train.Embarked[data_train.Survived == 0].value_counts()
+Survived_1 = data_train.Embarked[data_train.Survived == 1].value_counts()
+df2 =pd.DataFrame({u'获救':Survived_1, u'未获救':Survived_0})
+df2.plot(kind='bar', stacked=True)
+plt.title(u"各登录港口乘客的获救情况")
+plt.xlabel(u"登录港口")
+plt.ylabel(u"人数")
+#plt.show()
+
+Survived_cabin = data_train.Survived[pd.notnull(data_train.Cabin)].value_counts()
+Survived_nocabin = data_train.Survived[pd.isnull(data_train.Cabin)].value_counts()
+df3 = pd.DataFrame({u'有':Survived_cabin, u'无':Survived_nocabin}).transpose()
+df3.plot(kind='bar', stacked=True)
+plt.title(u"按Cabin有无看获救情况")
+plt.xlabel(u"Cabin有无")
+plt.ylabel(u"人数")
+#plt.show()
+
+# 使用 RandomForestRegressor 填补缺失的年龄属性
+from sklearn.ensemble import  RandomForestRegressor
+def set_missing_ages(df):
+
+    # 把已有的数值型特征取出来丢进Random Forest Regressor中
+    age_df = df[['Age', 'Fare', 'Parch', 'SibSp', 'Pclass']]
+    # 乘客分成已知年龄和未知年龄两部分
+    known_age = age_df[age_df.Age.notnull()].as_matrix()
+    unknown_age = age_df[age_df.Age.isnull()].as_matrix()
+    # y即目标年龄
+    y = known_age[:,0]
+    X = known_age[:, 1:]
+    #fit到RandomForestRegressor之中
+    rfr = RandomForestRegressor(random_state=0,n_estimators=2000,n_jobs=-1)
+    rfr.fit(X,y)
+    # 用得到的模型进行未知年龄结果预测
+    predictedAges = rfr.predict(unknown_age[:,1:])
+    df.loc[(df.Age.isnull()),'Age'] = predictedAges
+    return  df,rfr
+
+def set_Cabin_type(df):
+    df.loc[(df.Cabin.notnull()),'Cabin'] = 'Yes'
+    df.loc[(df.Cabin.isnull()), 'Cabin'] = 'No'
+    return df
+
+data_train_pro,rfr=set_missing_ages(data_train)
+data_train_processed= set_Cabin_type(data_train_pro)
+
+#print(data_train_processed)
+#对类目型的特征因子化
+
+dummis_Cabin = pd.get_dummies(data_train_processed['Cabin'],prefix='Cabin')
+dummis_Embarked = pd.get_dummies(data_train_processed['Embarked'],prefix='Embarked')
+dummis_Sex = pd.get_dummies(data_train_processed['Sex'],prefix='Sex')
+dummis_Pclass = pd.get_dummies(data_train_processed['Pclass'],prefix='Pclass')
+
+df = pd.concat([data_train_processed,dummis_Cabin,dummis_Embarked,dummis_Sex,dummis_Pclass], axis=1)
+df.drop(['Pclass', 'Name', 'Sex', 'Ticket', 'Cabin', 'Embarked','Cabin_No'], axis=1, inplace=True)
 
 
-label = LabelEncoder()
-for dataset in data_cleaner:    
-    dataset['Sex_Code'] = label.fit_transform(dataset['Sex'])
-    dataset['Embarked_Code'] = label.fit_transform(dataset['Embarked'])
-    dataset['Title_Code'] = label.fit_transform(dataset['Title'])
-    dataset['AgeBin_Code'] = label.fit_transform(dataset['AgeBin'])
-    dataset['FareBin_Code'] = label.fit_transform(dataset['FareBin'])
+#数据标准特征化
+import  sklearn.preprocessing as preprocessing
+scaler = preprocessing.StandardScaler()
+scale_param = scaler.fit(df[['Age','Fare']])
+df['Age_scaled'] = scaler.fit_transform(df[['Age','Fare']], scale_param)[:,0]
+df['Fare_scaled'] = scaler.fit_transform(df[['Age','Fare']], scale_param)[:,1]
 
-Target = ['Survived']
+#print(df)
 
-data1_x = ['Sex','Pclass', 'Embarked', 'Title','SibSp', 'Parch', 'Age', 'Fare', 'FamilySize', 'IsAlone'] 
-data1_x_calc = ['Sex_Code','Pclass', 'Embarked_Code', 'Title_Code','SibSp', 'Parch', 'Age', 'Fare'] 
-data1_xy =  Target + data1_x
+# 
+from sklearn.linear_model import  LogisticRegression
 
-data1_x_bin = ['Sex_Code','Pclass', 'Embarked_Code', 'Title_Code', 'FamilySize', 'AgeBin_Code', 'FareBin_Code']
-data1_xy_bin = Target + data1_x_bin
+# 用正则取出我们要的属性值
+train_df = df.filter(regex='Survived|Age_.*|SibSp|Parch|Fare_.*|Cabin_.*|Embarked_.*|Sex_.*|Pclass_.*')
+train_np = train_df.as_matrix()
 
-data1_dummy = pd.get_dummies(data1[data1_x])
-data1_x_dummy = data1_dummy.columns.tolist()
-data1_xy_dummy = Target + data1_x_dummy
+y = train_np[:,0]
+x = train_np[:,1:]
 
-data1_dummy.head()
-
-train1_x, test1_x, train1_y, test1_y = model_selection.train_test_split(data1[data1_x_calc], data1[Target], random_state = 0)
-train1_x_bin, test1_x_bin, train1_y_bin, test1_y_bin = model_selection.train_test_split(data1[data1_x_bin], data1[Target] , random_state = 0)
-train1_x_dummy, test1_x_dummy, train1_y_dummy, test1_y_dummy = model_selection.train_test_split(data1_dummy[data1_x_dummy], data1[Target], random_state = 0)
-
-for x in data1_x:
-    if data1[x].dtype != 'float64' :
-        print('Survival Correlation by:', x)
-        print(data1[[x, Target[0]]].groupby(x, as_index=False).mean())
-        print('-'*10, '\n')
+clf = LogisticRegression(C=1.0,penalty='l1',tol=1e-6)
+clf.fit(x,y)
+#print(clf)
+#把模型系数和属性关联分析
+coef_dt = pd.DataFrame({'columns':list(train_df.columns)[1:],'coef':list(clf.coef_.T)})
+#print(coef_dt)
 
 
-print(pd.crosstab(data1['Title'],data1[Target[0]]))
 
+#对test数据进行预处理
+data_test = pd.read_csv('test.csv')
+data_test.loc[(data_test.Fare.isnull()),'Fare'] = 0
+#用RandomForestRegressor模型填年龄缺失值
+tmp_df = data_test[['Age','Fare','Parch','SibSp','Pclass']]
+null_age = tmp_df[data_test.Age.isnull()]
+X = null_age.iloc[:,1:]
+predictedAges = rfr.predict(X)
+data_test.loc[data_test.Age.isnull(),'Age'] = predictedAges
 
-plt.figure(figsize=[16,12])
+data_test_processed = set_Cabin_type(data_test)
+dummis_Cabin = pd.get_dummies(data_test_processed['Cabin'],prefix='Cabin')
+dummis_Embarked = pd.get_dummies(data_test_processed['Embarked'],prefix='Embarked')
+dummis_Sex = pd.get_dummies(data_test_processed['Sex'],prefix='Sex')
+dummis_Pclass = pd.get_dummies(data_test_processed['Pclass'],prefix='Pclass')
 
-plt.subplot(231)
-plt.boxplot(x=data1['Fare'], showmeans = True, meanline = True)
-plt.title('Fare Boxplot')
-plt.ylabel('Fare ($)')
+df_test = pd.concat([data_test_processed,dummis_Cabin,dummis_Embarked,dummis_Sex,dummis_Pclass], axis=1)
+df_test.drop(['Pclass', 'Name', 'Sex', 'Ticket', 'Cabin', 'Embarked','Cabin_No'], axis=1, inplace=True)
 
-plt.subplot(232)
-plt.boxplot(data1['Age'], showmeans = True, meanline = True)
-plt.title('Age Boxplot')
-plt.ylabel('Age (Years)')
+scaler = preprocessing.StandardScaler()
+scale_param_test = scaler.fit(df_test[['Age','Fare']])
+df_test['Age_scaled'] = scaler.fit_transform(df_test[['Age','Fare']], scale_param)[:,0]
+df_test['Fare_scaled'] = scaler.fit_transform(df_test[['Age','Fare']], scale_param)[:,1]
+#print(df_test)
 
-plt.subplot(233)
-plt.boxplot(data1['FamilySize'], showmeans = True, meanline = True)
-plt.title('Family Size Boxplot')
-plt.ylabel('Family Size (#)')
-
-plt.subplot(234)
-plt.hist(x = [data1[data1['Survived']==1]['Fare'], data1[data1['Survived']==0]['Fare']], 
-         stacked=True, color = ['g','r'],label = ['Survived','Dead'])
-plt.title('Fare Histogram by Survival')
-plt.xlabel('Fare ($)')
-plt.ylabel('# of Passengers')
-plt.legend()
-
-plt.subplot(235)
-plt.hist(x = [data1[data1['Survived']==1]['Age'], data1[data1['Survived']==0]['Age']], 
-         stacked=True, color = ['g','r'],label = ['Survived','Dead'])
-plt.title('Age Histogram by Survival')
-plt.xlabel('Age (Years)')
-plt.ylabel('# of Passengers')
-plt.legend()
-
-plt.subplot(236)
-plt.hist(x = [data1[data1['Survived']==1]['FamilySize'], data1[data1['Survived']==0]['FamilySize']], 
-         stacked=True, color = ['g','r'],label = ['Survived','Dead'])
-plt.title('Family Size Histogram by Survival')
-plt.xlabel('Family Size (#)')
-plt.ylabel('# of Passengers')
-plt.legend()
-
-fig, saxis = plt.subplots(2, 3,figsize=(16,12))
-
-sns.barplot(x = 'Embarked', y = 'Survived', data=data1, ax = saxis[0,0])
-sns.barplot(x = 'Pclass', y = 'Survived', order=[1,2,3], data=data1, ax = saxis[0,1])
-sns.barplot(x = 'IsAlone', y = 'Survived', order=[1,0], data=data1, ax = saxis[0,2])
-
-sns.pointplot(x = 'FareBin', y = 'Survived',  data=data1, ax = saxis[1,0])
-sns.pointplot(x = 'AgeBin', y = 'Survived',  data=data1, ax = saxis[1,1])
-sns.pointplot(x = 'FamilySize', y = 'Survived', data=data1, ax = saxis[1,2])
-
-fig, (axis1,axis2,axis3) = plt.subplots(1,3,figsize=(14,12))
-
-sns.boxplot(x = 'Pclass', y = 'Fare', hue = 'Survived', data = data1, ax = axis1)
-axis1.set_title('Pclass vs Fare Survival Comparison')
-
-sns.violinplot(x = 'Pclass', y = 'Age', hue = 'Survived', data = data1, split = True, ax = axis2)
-axis2.set_title('Pclass vs Age Survival Comparison')
-
-sns.boxplot(x = 'Pclass', y ='FamilySize', hue = 'Survived', data = data1, ax = axis3)
-axis3.set_title('Pclass vs Family Size Survival Comparison')
-
-fig, qaxis = plt.subplots(1,3,figsize=(14,12))
-
-sns.barplot(x = 'Sex', y = 'Survived', hue = 'Embarked', data=data1, ax = qaxis[0])
-axis1.set_title('Sex vs Embarked Survival Comparison')
-
-sns.barplot(x = 'Sex', y = 'Survived', hue = 'Pclass', data=data1, ax  = qaxis[1])
-axis1.set_title('Sex vs Pclass Survival Comparison')
-
-sns.barplot(x = 'Sex', y = 'Survived', hue = 'IsAlone', data=data1, ax  = qaxis[2])
-axis1.set_title('Sex vs IsAlone Survival Comparison')
-
-fig, (maxis1, maxis2) = plt.subplots(1, 2,figsize=(14,12))
-
-sns.pointplot(x="FamilySize", y="Survived", hue="Sex", data=data1,
-              palette={"male": "blue", "female": "pink"},
-              markers=["*", "o"], linestyles=["-", "--"], ax = maxis1)
-
-sns.pointplot(x="Pclass", y="Survived", hue="Sex", data=data1,
-              palette={"male": "blue", "female": "pink"},
-              markers=["*", "o"], linestyles=["-", "--"], ax = maxis2)
-
-e = sns.FacetGrid(data1, col = 'Embarked')
-e.map(sns.pointplot, 'Pclass', 'Survived', 'Sex', ci=95.0, palette = 'deep')
-e.add_legend()
-
-a = sns.FacetGrid( data1, hue = 'Survived', aspect=4 )
-a.map(sns.kdeplot, 'Age', shade= True )
-a.set(xlim=(0 , data1['Age'].max()))
-a.add_legend()
-
-h = sns.FacetGrid(data1, row = 'Sex', col = 'Pclass', hue = 'Survived')
-h.map(plt.hist, 'Age', alpha = .75)
-h.add_legend()
-
-pp = sns.pairplot(data1, hue = 'Survived', palette = 'deep', size=1.2, diag_kind = 'kde', diag_kws=dict(shade=True), plot_kws=dict(s=10) )
-pp.set(xticklabels=[])
-
-def correlation_heatmap(df):
-    _ , ax = plt.subplots(figsize =(14, 12))
-    colormap = sns.diverging_palette(220, 10, as_cmap = True)
-    
-    _ = sns.heatmap(
-        df.corr(), 
-        cmap = colormap,
-        square=True, 
-        cbar_kws={'shrink':.9 }, 
-        ax=ax,
-        annot=True, 
-        linewidths=0.1,vmax=1.0, linecolor='white',
-        annot_kws={'fontsize':12 }
-    )
-    
-    plt.title('Pearson Correlation of Features', y=1.05, size=15)
-
-correlation_heatmap(data1)
-
-model = linear_model.LogisticRegression()
-
-model.fit(train1_x_dummy,train1_y_dummy)
-
-model.score(test1_x_dummy, test1_y_dummy)
+#预测结果
+test_X = df_test.filter(regex = 'Age_.*|SibSp|Parch|Fare_.*|Cabin_.*|Embarked_.*|Sex_.*|Pclass_.*')
+predictions = clf.predict(test_X)
+result = pd.DataFrame({'PassengerId':data_test['PassengerId'].as_matrix(),
+                       'Survived':predictions.astype(np.int32)})
+result.to_csv('submission1.csv',index=False)
