@@ -1,9 +1,10 @@
 # 使用了Iris数据集,这个scikit-learn自带了. Iris数据集是常用的分类实验数据集，由Fisher, 1936收集整理。Iris也称鸢尾花卉数据集，是一类多重变量分析的数据集。
 # 数据集包含150个数据集，分为3类，每类50个数据，每个数据包含4个属性。可通过花萼长度，花萼宽度，花瓣长度，花瓣宽度4个属性预测鸢尾花卉属于三个种类中的哪一类。
-# 注意,Iris数据集给出的三种花是按照顺序来的,前50个是第0类,51-100是第1类,101~150是第二类,如果我们分训练集和测试集的时候要把顺序打乱,
-# 这里我们引入一个两类shuffle的函数,它接收两个参数,分别是x和y,然后把x,y绑在一起shuffle.
+# 注意,Iris数据集给出的三种花是按照顺序来的,前50个是第0类,51-100是第1类,101~150是第2类,分训练集和测试集时要把顺序打乱,
+# 这里引入一个两类shuffle()函数,它接收两个参数,分别是x和y,然后把x,y绑在一起shuffle.
 
 from sklearn.datasets import load_iris
+import numpy
 import warnings
 warnings.filterwarnings('ignore') 
 
@@ -11,7 +12,6 @@ iris = load_iris()
 
 def shuffle_in_unison(a, b):
     assert len(a) == len(b)
-    import numpy
     shuffled_a = numpy.empty(a.shape, dtype=a.dtype)
     shuffled_b = numpy.empty(b.shape, dtype=b.dtype)
     permutation = numpy.random.permutation(len(a))
@@ -21,22 +21,28 @@ def shuffle_in_unison(a, b):
     return shuffled_a, shuffled_b
 
 def load_data():
+    # import random
+    # iris.data = random.shuffle(iris.data)
+    # iris.target = random.shuffle(iris.target)
     iris.data, iris.target = shuffle_in_unison(iris.data, iris.target)
     x_train ,x_test = iris.data[:100],iris.data[100:]
     y_train, y_test = iris.target[:100].reshape(-1,1),iris.target[100:].reshape(-1,1)
     return x_train, y_train, x_test, y_test
 
-
 from sklearn import tree, svm, naive_bayes,neighbors
 from sklearn.ensemble import BaggingClassifier, AdaBoostClassifier, RandomForestClassifier, GradientBoostingClassifier
-
+import tensorflow as tf
+# from tf.contrib import learn
 
 x_train, y_train, x_test, y_test = load_data()
 
-clfs = {'svm': svm.SVC(),\
-        'decision_tree':tree.DecisionTreeClassifier(),
+clfs = {
+        # 'DNN': tf.contrib.learn.DNNClassifier(feature_columns=feature_columns, hidden_units=[10,20,10], n_classes=3,
+        #                                         optimizer=tf.train.AdamOptimizer(learning_rate=0.01), model_dir=”/logs”), \
+        'svm': svm.SVC(),\
+        'decision_tree': tree.DecisionTreeClassifier(), \
         'naive_gaussian': naive_bayes.GaussianNB(), \
-        'naive_mul':naive_bayes.MultinomialNB(),\
+        'naive_mul': naive_bayes.MultinomialNB(),\
         'K_neighbor' : neighbors.KNeighborsClassifier(),\
         'bagging_knn' : BaggingClassifier(neighbors.KNeighborsClassifier(), max_samples=0.5,max_features=0.5), \
         'bagging_tree': BaggingClassifier(tree.DecisionTreeClassifier(), max_samples=0.5,max_features=0.5),
@@ -44,6 +50,10 @@ clfs = {'svm': svm.SVC(),\
         'adaboost':AdaBoostClassifier(n_estimators=50),\
         'gradient_boost' : GradientBoostingClassifier(n_estimators=50, learning_rate=1.0,max_depth=1, random_state=0)
         }
+# def try_DNN_method(clf):
+#     clf.fit(x_train, y_train, step=100)
+#     score = clf.score(x_test,y_test.ravel())
+#     print('the score is :', score)
 
 def try_different_method(clf):
     clf.fit(x_train,y_train.ravel())
@@ -52,5 +62,12 @@ def try_different_method(clf):
 
 for clf_key in clfs.keys():
     print('the classifier is :',clf_key)
+#     if clf_key == 'DNN':
+#         clf = clfs[clf_key]
+#         try_DNN_method(clf)
+#     else:
+#         clf = clfs[clf_key]
+#         try_different_method(clf)
+
     clf = clfs[clf_key]
     try_different_method(clf)
